@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judgement Game Tracker</title>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        #info {
+            display: none;
+        }
+        #game-controls {
+            display: none;
+        }
+        #info p {
+            margin: 10px;
+        }
+        #round {
+            font-size: 22px; /* Reduced by 40% */
+            font-weight: bold;
+            color: black;
+        }
+        #cards {
+            font-size: 28px;
+            font-weight: bold;
+            color: blue;
+        }
+        #dealer {
+            font-size: 28px;
+            font-weight: bold;
+            color: red;
+        }
+        #trump {
+            font-size: 48px; /* Increased by 20% */
+        }
+        #timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: green;
+        }
+        .label {
+            font-size: 24px;
+            color: black;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title (visible only on setup screen) -->
+    <h1 id="title">Judgement Game Tracker</h1>
+
+    <!-- Player Setup -->
+    <div id="setup">
+        <h2>Enter Player Names</h2>
+        <div>
+            <label>Player 1: <input type="text" id="player1" placeholder="Enter name"></label><br>
+            <label>Player 2: <input type="text" id="player2" placeholder="Enter name"></label><br>
+            <label>Player 3: <input type="text" id="player3" placeholder="Enter name"></label><br>
+            <label>Player 4: <input type="text" id="player4" placeholder="Enter name"></label><br>
+        </div>
+        <button id="start">Start Game</button>
+    </div>
+
+    <!-- Game Info -->
+    <div id="info">
+        <div id="round"></div>
+        <p><span class="label">Deal: </span><span id="cards"></span></p>
+        <p id="dealer"></p>
+        <p id="trump"></p>
+        <div id="timer">Time: 0:00:00</div>
+    </div>
+
+    <!-- Game Controls -->
+    <div id="game-controls">
+        <button id="previous">Previous Round</button>
+        <button id="next">Next Round</button>
+        <button id="pause">Pause Game</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <script>
+        const trumpEmojis = ["♠️", "♥️", "♦️", "♣️", "☠️"];
+        let players = [];
+        let currentRound = 1;
+        let currentTrumpIndex = 0;
+        let currentDealerIndex = 0;
+        let timerInterval, startTime, pausedTime = 0, isPaused = false;
+
+        const roundEl = document.getElementById("round");
+        const cardsEl = document.getElementById("cards");
+        const trumpEl = document.getElementById("trump");
+        const dealerEl = document.getElementById("dealer");
+        const timerEl = document.getElementById("timer");
+        const nextBtn = document.getElementById("next");
+
+        // Timer functions
+        const startTimer = () => {
+            startTime = Date.now() - pausedTime;
+            timerInterval = setInterval(() => {
+                const elapsedTime = Date.now() - startTime;
+                const hours = Math.floor(elapsedTime / 3600000);
+                const minutes = Math.floor((elapsedTime % 3600000) / 60000);
+                const seconds = Math.floor((elapsedTime % 60000) / 1000);
+                timerEl.textContent = `Time: ${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        };
+
+        const pauseTimer = () => {
+            clearInterval(timerInterval);
+            pausedTime = Date.now() - startTime;
+        };
+
+        const stopTimer = () => {
+            clearInterval(timerInterval);
+        };
+
+        // Update the display
+        const updateDisplay = () => {
+            roundEl.textContent = `#${currentRound}`;
+            trumpEl.textContent = trumpEmojis[currentTrumpIndex];
+            dealerEl.textContent = players[currentDealerIndex];
+            const cards = currentRound <= 13 ? 14 - currentRound : currentRound - 12;
+            cardsEl.textContent = cards;
+
+            // Update "Next Round" button for the last round
+            if (currentRound === 25) {
+                nextBtn.textContent = "End Game";
+            } else {
+                nextBtn.textContent = "Next Round";
+            }
+        };
+
+        // Start the game after setting up players
+        document.getElementById("start").addEventListener("click", () => {
+            const player1 = document.getElementById("player1").value || "Player 1";
+            const player2 = document.getElementById("player2").value || "Player 2";
+            const player3 = document.getElementById("player3").value || "Player 3";
+            const player4 = document.getElementById("player4").value || "Player 4";
+
+            players = [player1, player2, player3, player4];
+            currentDealerIndex = 0;
+
+            // Hide setup and show game info
+            document.getElementById("setup").style.display = "none";
+            document.getElementById("info").style.display = "block";
+            document.getElementById("game-controls").style.display = "block";
+            document.getElementById("title").style.display = "none";
+
+            updateDisplay();
+            startTimer();
+        });
+
+        // Next round functionality
+        document.getElementById("next").addEventListener("click", () => {
+            if (currentRound === 25) {
+                stopTimer();
+                alert(`Game over! ${timerEl.textContent}`);
+                return;
+            }
+            if (currentRound < 25) {
+                currentRound++;
+                currentTrumpIndex = (currentTrumpIndex + 1) % trumpEmojis.length;
+                currentDealerIndex = (currentDealerIndex + 1) % players.length;
+                updateDisplay();
+            }
+        });
+
+        // Previous round functionality
+        document.getElementById("previous").addEventListener("click", () => {
+            if (currentRound > 1) {
+                currentRound--;
+                currentTrumpIndex = (currentTrumpIndex - 1 + trumpEmojis.length) % trumpEmojis.length;
+                currentDealerIndex = (currentDealerIndex - 1 + players.length) % players.length;
+                updateDisplay();
+            }
+        });
+
+        // Pause game functionality
+        document.getElementById("pause").addEventListener("click", () => {
+            if (isPaused) {
+                startTimer();
+                document.getElementById("pause").textContent = "Pause Game";
+            } else {
+                pauseTimer();
+                document.getElementById("pause").textContent = "Resume Game";
+            }
+            isPaused = !isPaused;
+        });
+
+        // Reset functionality
+        document.getElementById("reset").addEventListener("click", () => {
+            stopTimer();
+            currentRound = 1;
+            currentTrumpIndex = 0;
+            currentDealerIndex = 0;
+            pausedTime = 0;
+            isPaused = false;
+
+            document.getElementById("setup").style.display = "block";
+            document.getElementById("info").style.display = "none";
+            document.getElementById("game-controls").style.display = "none";
+            document.getElementById("title").style.display = "block";
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
